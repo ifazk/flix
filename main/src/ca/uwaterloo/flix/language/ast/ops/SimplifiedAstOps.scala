@@ -112,6 +112,13 @@ object SimplifiedAstOps {
         checkType(tpe)
 
       //
+      // LambdaClosure.
+      //
+      case Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc) =>
+        checkExp(exp0, env0, ienv0)
+        checkType(tpe)
+
+      //
       // ApplyClo Expressions.
       //
       case Expression.ApplyClo(exp, args, tpe, loc) =>

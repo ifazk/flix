@@ -96,6 +96,18 @@ object PrettyPrinter {
           }
           vt.text("])")
 
+        case Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc) =>
+          vt.text("RecClosure(")
+          fmtSym(boundVar.sym, vt)
+          vt.text(", ")
+          visitExp(exp)
+          vt.text(", [")
+          for (freeVar <- freeVars) {
+            fmtSym(freeVar.sym, vt)
+            vt.text(", ")
+          }
+          vt.text("])")
+
         case Expression.Closure(sym, freeVars, tpe, loc) =>
           vt.text("Closure(")
           fmtSym(sym, vt)

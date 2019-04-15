@@ -135,6 +135,10 @@ object SimplifiedAst {
     @EliminatedBy(LambdaLift.getClass)
     case class LambdaClosure(fparams: List[SimplifiedAst.FormalParam], freeVars: List[FreeVar], exp: SimplifiedAst.Expression, tpe: Type, loc: SourceLocation) extends SimplifiedAst.Expression
 
+    @IntroducedBy(ClosureConv.getClass)
+    @EliminatedBy(LambdaLift.getClass)
+    case class RecClosure(boundVar: FreeVar, fparams: List[SimplifiedAst.FormalParam], freeVars: List[FreeVar], exp: SimplifiedAst.Expression, tpe: Type, loc: SourceLocation) extends SimplifiedAst.Expression
+
     @IntroducedBy(LambdaLift.getClass)
     case class Closure(sym: Symbol.DefnSym, freeVars: List[FreeVar], tpe: Type, loc: SourceLocation) extends SimplifiedAst.Expression
 

@@ -179,6 +179,58 @@ object ClosureConv extends Phase[Root, Root] {
     case Expression.Let(sym, e1, e2, tpe, loc) =>
       Expression.Let(sym, visitExp(e1), visitExp(e2), tpe, loc)
 
+    case Expression.LetRec(sym, Expression.Lambda(args, body, tpe, loc), e2, tpe0, loc0) =>
+      // This is a special case where the LetRec binds to a (recursive) lambda, the case is very similar to the Lambda
+      // case, except that we should not sym as a free variable in the lambda, and instead of returning let binding to a
+      // lambda closure
+      // TODO: share more code between the lambda case and this one?
+
+      // Retrieve the type of the function.
+      val ts = tpe.typeArguments
+      val (targs, tresult) = (ts.init, ts.last)
+
+      // Convert lambdas to closures. This is the main part of the `convert` function.
+      // Closure conversion happens as follows:
+
+      // First, we collect the free variables in the lambda expression.
+      // NB: We pass the lambda expression (instead of its body) to account for bound arguments.
+      // NB: The filter is one way where we are different from the above lambda case
+      val fvs = freeVars(exp0).toList.filter(fv => fv._1 != sym)
+
+      // We prepend the free variables to the arguments list. Thus all variables within the lambda body will be treated
+      // uniformly. The implementation will supply values for the free variables, without any effort from the caller.
+      // We introduce new symbols for each introduced parameter and replace their occurrence in the body.
+      val subst = mutable.Map.empty[Symbol.VarSym, Symbol.VarSym]
+      val newArgs = fvs.map {
+        case (oldSym, ptype) =>
+          val newSym = Symbol.freshVarSym(oldSym)(flix.genSym)
+          subst += (oldSym -> newSym)
+          FormalParam(newSym, Ast.Modifiers.Empty, ptype, SourceLocation.Unknown)
+      } ++ args
+
+      // Update the lambda type.
+      val argTpes = fvs.map(_._2) ++ targs
+      val newTpe = Type.mkUncurriedArrow(argTpes, tresult)
+
+      val newBody = visitExp(replace(body, subst.toMap))
+      // We rewrite the lambda with its new arguments list and new body, with any nested lambdas also converted.
+      // val lambda = Expression.Lambda(newArgs, newBody, newTpe, loc)
+
+      // At this point, `lambda` is the original lambda expression, but with all free variables converted to new
+      // arguments, prepended to the original arguments list. Additionally, any lambdas within the body have also been
+      // closure converted.
+
+      // We return a MkClosure node, which contains `lambda` (rewritten to have extra arguments so there are no more
+      // free variables) as well as the cached `freeVars`. The closure will actually be created at run time, where the
+      // values for the free variables are bound and stored in the closure structure. When the closure is called, the
+      // bound values are passed as arguments.
+      // Note that MkClosure keeps the old lambda type.
+      // In a later phase, we will lift the lambda to a top-level definition.
+      // Expression.LambdaClosure(lambda, fvs.map(v => FreeVar(v._1, v._2)), tpe, loc)
+      val boundVar = FreeVar(sym,tpe0)
+      val newLambda = Expression.RecClosure(boundVar, newArgs, fvs.map(v => FreeVar(v._1, v._2)), newBody, tpe, loc)
+      Expression.Let(sym, newLambda, visitExp(e2), tpe0, loc0)
+
     case Expression.LetRec(sym, e1, e2, tpe, loc) =>
       Expression.LetRec(sym, visitExp(e1), visitExp(e2), tpe, loc)
 
@@ -353,6 +405,7 @@ object ClosureConv extends Phase[Root, Root] {
 
     case Expression.Closure(ref, freeVars, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.LambdaClosure(fparams, freeVars, exp, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
+    case Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.ApplyClo(e, args, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.ApplyDef(name, args, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.ApplyEff(name, args, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
@@ -526,6 +579,7 @@ object ClosureConv extends Phase[Root, Root] {
     case Expression.SwitchError(tpe, loc) => mutable.LinkedHashSet.empty
 
     case Expression.LambdaClosure(fparams, freeVars, exp, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
+    case Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.Closure(ref, freeVars, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.ApplyClo(exp, args, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
     case Expression.ApplyDef(sym, args, tpe, loc) => throw InternalCompilerException(s"Unexpected expression: '${exp0.getClass.getSimpleName}'.")
@@ -624,6 +678,10 @@ object ClosureConv extends Phase[Root, Root] {
       case Expression.LambdaClosure(fparams, freeVars, exp, tpe, loc) =>
         val e = visitExp(exp).asInstanceOf[Expression.Lambda]
         Expression.LambdaClosure(fparams, freeVars, exp, tpe, loc)
+
+      case Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc) =>
+        val e = visitExp(exp).asInstanceOf[Expression.Lambda]
+        Expression.RecClosure(boundVar, fparams, freeVars, exp, tpe, loc)
 
       case Expression.ApplyClo(exp, args, tpe, loc) =>
         val e = visitExp(exp)
