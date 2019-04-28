@@ -225,17 +225,18 @@ object Weeder extends Phase[ParsedAst.Program, WeededAst.Program] {
     * Performs weeding on the given type declaration `d0`.
     */
   private def visitTypeDecl(d0: ParsedAst.Declaration.Type)(implicit flix: Flix): Validation[List[WeededAst.Declaration.Enum], WeederError] = d0 match {
-    case ParsedAst.Declaration.Type(doc0, mods, sp1, ident, caze, sp2) =>
+    case ParsedAst.Declaration.Type(doc0, mods, sp1, ident, tparams0, caze, sp2) =>
       /*
        * Rewrites a type alias to a singleton enum declaration.
        */
       val doc = visitDoc(doc0)
       val modVal = visitModifiers(mods, legalModifiers = Set(Ast.Modifier.Public))
+      val tparams = tparams0.toList.map(_.ident)
 
       modVal map {
         case mod =>
           val cases = Map(caze.ident.name -> WeededAst.Case(ident, caze.ident, visitType(caze.tpe)))
-          List(WeededAst.Declaration.Enum(doc, mod, ident, Nil, cases, mkSL(sp1, sp2)))
+          List(WeededAst.Declaration.Enum(doc, mod, ident, tparams, cases, mkSL(sp1, sp2)))
       }
   }
 

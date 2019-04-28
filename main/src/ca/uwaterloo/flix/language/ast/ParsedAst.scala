@@ -197,7 +197,7 @@ object ParsedAst {
       * @param caze  the singleton case of the type.
       * @param sp2   the position of the last character in the declaration.
       */
-    case class Type(doc: ParsedAst.Doc, mod: Seq[ParsedAst.Modifier], sp1: SourcePosition, ident: Name.Ident, caze: ParsedAst.Case, sp2: SourcePosition) extends ParsedAst.Declaration
+    case class Type(doc: ParsedAst.Doc, mod: Seq[ParsedAst.Modifier], sp1: SourcePosition, ident: Name.Ident, tparams: Seq[ParsedAst.ContextBound], caze: ParsedAst.Case, sp2: SourcePosition) extends ParsedAst.Declaration
 
     /**
       * Relation Declaration.
