@@ -221,6 +221,10 @@ class Parser(val source: Source) extends org.parboiled2.Parser {
       }
     }
 
+    def TypeAlias: Rule1[ParsedAst.Declaration.TypeAlias] = rule {
+      Documentation ~ Modifiers ~ SP ~ atomic("typealias") ~ WS ~ Names.Type ~ TypeParams ~ WS ~ "=" ~ WS ~ Type ~ SP ~> ParsedAst.Declaration.TypeAlias
+    }
+
     def Relation: Rule1[ParsedAst.Declaration.Relation] = rule {
       Documentation ~ Modifiers ~ SP ~ atomic("rel") ~ WS ~ Names.Predicate ~ optWS ~ TypeParams ~ AttributeList ~ SP ~> ParsedAst.Declaration.Relation
     }

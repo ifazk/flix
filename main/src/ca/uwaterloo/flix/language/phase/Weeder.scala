@@ -88,6 +88,8 @@ object Weeder extends Phase[ParsedAst.Program, WeededAst.Program] {
 
     case d: ParsedAst.Declaration.Type => visitTypeDecl(d)
 
+    case d: ParsedAst.Declaration.TypeAlias => visitTypeAlias(d)
+
     case d: ParsedAst.Declaration.Relation => visitRelation(d)
 
     case d: ParsedAst.Declaration.Lattice => visitLattice(d)
@@ -240,6 +242,23 @@ object Weeder extends Phase[ParsedAst.Program, WeededAst.Program] {
       }
   }
 
+  /**
+    * Performs weeding on the given type alias `a0`.
+    */
+  private def visitTypeAlias(a0: ParsedAst.Declaration.TypeAlias)(implicit flix: Flix): Validation[List[WeededAst.Declaration.TypeAlias], WeederError] = a0 match {
+    case ParsedAst.Declaration.TypeAlias(doc0, mods, sp1, ident, tparams0, tpe, sp2) =>
+      /*
+       * Rewrites a type alias to a singleton enum declaration.
+       */
+      val doc = visitDoc(doc0)
+      val modVal = visitModifiers(mods, legalModifiers = Set(Ast.Modifier.Public))
+      val tparams = tparams0.toList.map(_.ident)
+
+      modVal map {
+        case mod =>
+          List(WeededAst.Declaration.TypeAlias(doc, mod, ident, tparams, visitType(tpe), mkSL(sp1, sp2)))
+      }
+  }
   /**
     * Performs weeding on the given relation `r0`.
     */

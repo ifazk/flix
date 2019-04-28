@@ -194,10 +194,24 @@ object ParsedAst {
       * @param mod   the associated modifiers.
       * @param sp1   the position of the first character in the declaration.
       * @param ident the name of the type.
+      * @param tparams the type parameters.
       * @param caze  the singleton case of the type.
       * @param sp2   the position of the last character in the declaration.
       */
     case class Type(doc: ParsedAst.Doc, mod: Seq[ParsedAst.Modifier], sp1: SourcePosition, ident: Name.Ident, tparams: Seq[ParsedAst.ContextBound], caze: ParsedAst.Case, sp2: SourcePosition) extends ParsedAst.Declaration
+
+    /**
+      * Type Alias. A type alias is adds.
+      *
+      * @param doc   the optional comment associated with the declaration.
+      * @param mod   the associated modifiers.
+      * @param sp1   the position of the first character in the declaration.
+      * @param ident the name of the type alias.
+      * @param tparams the type parameters.
+      * @param tpe   the type that we are aliasing
+      * @param sp2   the position of the last character in the declaration.
+      */
+    case class TypeAlias(doc: ParsedAst.Doc, mod: Seq[ParsedAst.Modifier], sp1: SourcePosition, ident: Name.Ident, tparams: Seq[ParsedAst.ContextBound], tpe: ParsedAst.Type, sp2: SourcePosition) extends ParsedAst.Declaration
 
     /**
       * Relation Declaration.
